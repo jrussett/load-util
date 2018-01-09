@@ -1,13 +1,51 @@
-#!/usr/bin/env bash
+#!/usr/bin/env bash -e
 
-set -e
+usage() {
+  echo "usage: load-util [[--eod] | [[-t | --hours] num_hours | [-h | --help]]"
+  echo "Caveats:"
+  echo "- flag \"--eod\" assumes that end of day is 5 p.m."
+  echo "- private key \"id_rsa\" must be co-located with this load-util script"
+}
 
-HOURS=$1
+end_of_day() {
+  let current_time=$(date -j -f "%a %b %d %T %Z %Y" "`date`" "+%s")
+  let five_oclock=$(date -j -f "%a %b %d %T %Z %Y" "`date | sed -E "s/[0-9]+\:[0-9]+\:[0-9]+/17:00:00/"`" "+%s")
+  let difference=five_oclock-current_time
 
-if [ -z $HOURS ]; then
-  echo "Usage: $0 <num hours>"
-  exit 1
+  ssh-add -t $difference $KEY_PATH
+}
+
+hours() {
+  if [ -z $NUM_HOURS ]; then
+    usage
+    exit 1
+  fi
+
+  ssh-add -t ${NUM_HOURS}H $KEY_PATH
+}
+
+# "Main"
+NUM_HOURS=
+KEY_PATH=$(dirname $0)/id_rsa
+
+if [ -z $1 ]; then
+  usage
 fi
 
-ssh-add -t ${HOURS}H $(dirname $0)/id_rsa
-diskutil umount force $(dirname $0)
+while [ "$1" != "" ]; do
+  case $1 in
+      --eod )        end_of_day
+                     ;;
+      -t | --hours ) shift
+                     NUM_HOURS=$1
+                     hours
+                     ;;
+      -h | --help )  usage
+                     exit
+                     ;;
+      * )            usage
+                     exit 1
+  esac
+  shift
+done
+
