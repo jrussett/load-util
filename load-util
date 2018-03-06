@@ -35,10 +35,12 @@ fi
 while [ "$1" != "" ]; do
   case $1 in
       --eod )        end_of_day
+                     cat ascii_art.txt
                      ;;
       -t | --hours ) shift
                      NUM_HOURS=$1
                      hours
+                     cat ascii_art.txt
                      ;;
       -h | --help )  usage
                      exit
